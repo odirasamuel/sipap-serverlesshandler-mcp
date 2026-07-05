@@ -6,8 +6,6 @@ Verifies that sipap-serverlesshandler-mcp properly integrates with sipap-common.
 
 import json
 import logging
-from contextlib import redirect_stdout
-from io import StringIO
 
 import pytest
 
