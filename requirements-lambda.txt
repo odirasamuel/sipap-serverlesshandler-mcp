@@ -1,8 +1,9 @@
 # Lambda Layer Dependencies for sipap-serverlesshandler-mcp (sipap-mcp)
 # These are the runtime dependencies that will be packaged into the Lambda layer
-
-# Core SIPAP dependency
-sipap-common>=0.1.0
+#
+# IMPORTANT: sipap-common is provided as a SEPARATE Lambda layer and should NOT
+# be included here. Both layers (common + serverlesshandler) are attached to
+# Lambda functions independently following the Sentinel two-layer pattern.
 
 # MCP server framework dependencies
 pydantic>=2.7.0
@@ -10,8 +11,3 @@ fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
 jsonschema>=4.22.0
 typing-extensions>=4.12.0
-
-# Additional runtime dependencies from sipap-common layer
-# (pyyaml, jinja2, boto3, redis, sqlalchemy)
-# These will be inherited from sipap-common layer, but we include them here
-# to ensure sipap-mcp layer can be used independently if needed
