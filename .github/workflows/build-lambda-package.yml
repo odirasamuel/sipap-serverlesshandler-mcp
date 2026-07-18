@@ -1,0 +1,159 @@
+name: Build MCP Handler Lambda Layer & Push to S3
+
+on:
+  workflow_call:
+    secrets:
+      AWS_GITHUB_ACTIONS_ROLE_ARN:
+        required: true
+      S3_LAMBDA_BUCKET:
+        required: false  # Optional, defaults to sipap-lambda-packages-dev
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'pyproject.toml'
+      - 'requirements-lambda.txt'
+      - '.github/workflows/build-lambda-package.yml'
+
+jobs:
+  resolve-python-versions:
+    name: Resolve latest Lambda Python runtimes
+    uses: odirasamuel/sipap-common/.github/workflows/resolve-lambda-python-versions.yml@main
+    permissions:
+      contents: read
+
+  build-and-upload:
+    name: Build and upload Lambda layer
+    needs: resolve-python-versions
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.resolve-python-versions.outputs.matrix) }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Validate matrix input
+        shell: bash
+        run: |
+          echo "=== Matrix Validation ==="
+          echo "Received python value: '${{ matrix.python }}'"
+
+          # Check it's not empty
+          if [[ -z "${{ matrix.python }}" ]]; then
+            echo "❌ ERROR: matrix.python is empty"
+            exit 1
+          fi
+
+          # Check it matches expected format (e.g., 3.12, 3.13, 3.14)
+          if [[ ! "${{ matrix.python }}" =~ ^3\.[0-9]+$ ]]; then
+            echo "❌ ERROR: matrix.python doesn't match expected format (3.x)"
+            echo "   Got: '${{ matrix.python }}'"
+            exit 1
+          fi
+
+          echo "✅ Matrix value is valid: ${{ matrix.python }}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve package name from repository
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+
+          # Matches: sipap-<name> or sipap-<name>-mcp
+          if [[ "$REPO_NAME" =~ ^sipap-(.+?)(-mcp)?$ ]]; then
+            PACKAGE_NAME="${BASH_REMATCH[1]}"
+          else
+            echo "❌ Repository name must match: sipap-<name> or sipap-<name>-mcp"
+            echo "   Found: $REPO_NAME"
+            exit 1
+          fi
+
+          echo "Derived package name: $PACKAGE_NAME"
+          echo "name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Verify requirements-lambda.txt exists
+        shell: bash
+        run: |
+          if [[ ! -f requirements-lambda.txt ]]; then
+            echo "❌ requirements-lambda.txt not found at repo root"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Build Lambda layer
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf layer
+          mkdir -p layer/python
+
+          python -m pip install --upgrade pip
+          pip install \
+            -r requirements-lambda.txt \
+            --no-cache-dir \
+            --no-compile \
+            --upgrade \
+            --target layer/python
+
+          # Clean up unnecessary files
+          find layer -type d -name "__pycache__" -exec rm -rf {} + || true
+          find layer -type d -name "tests" -exec rm -rf {} + || true
+          find layer -type f -name "*.pyc" -delete || true
+
+      - name: Package Lambda layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP_NAME="${{ steps.package.outputs.name }}_layer_py${{ matrix.python }}.zip"
+
+          cd layer
+          zip -X -r "../${ZIP_NAME}" python
+          cd ..
+
+          rm -rf layer
+
+          echo "✅ Created layer package: ${ZIP_NAME}"
+          ls -lh "${ZIP_NAME}"
+
+      - name: Upload layer to S3
+        shell: bash
+        env:
+          S3_BUCKET: ${{ secrets.S3_LAMBDA_BUCKET || 'sipap-lambda-packages-dev' }}
+        run: |
+          set -euo pipefail
+
+          PACKAGE="${{ steps.package.outputs.name }}"
+          PY_FOLDER="python_${{ matrix.python }}"
+          KEY="${PACKAGE}/${PY_FOLDER}/layer.zip"
+          ZIP_FILE="${PACKAGE}_layer_py${{ matrix.python }}.zip"
+          BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          aws s3 cp \
+            "${ZIP_FILE}" \
+            "s3://${S3_BUCKET}/${KEY}" \
+            --metadata "git-sha=${{ github.sha }},git-branch=${{ github.ref_name }},python-version=${{ matrix.python }},package-name=${PACKAGE},build-date=${BUILD_DATE}"
+
+          echo "✅ Uploaded ${PACKAGE} layer → s3://${S3_BUCKET}/${KEY}"
+
+          # Output S3 URI for reference
+          echo "S3_URI=s3://${S3_BUCKET}/${KEY}" >> "$GITHUB_ENV"
