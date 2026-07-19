@@ -107,6 +107,7 @@ jobs:
           rm -rf layer
           mkdir -p layer/python
 
+          # Install third-party dependencies
           python -m pip install --upgrade pip
           pip install \
             -r requirements-lambda.txt \
@@ -115,10 +116,17 @@ jobs:
             --upgrade \
             --target layer/python
 
+          # Copy sipap_mcp package source code into the layer
+          echo "Copying sipap_mcp package into layer..."
+          cp -r src/sipap_mcp layer/python/
+
           # Clean up unnecessary files
           find layer -type d -name "__pycache__" -exec rm -rf {} + || true
           find layer -type d -name "tests" -exec rm -rf {} + || true
           find layer -type f -name "*.pyc" -delete || true
+
+          echo "Layer contents:"
+          ls -la layer/python/ | head -20
 
       - name: Package Lambda layer
         shell: bash
