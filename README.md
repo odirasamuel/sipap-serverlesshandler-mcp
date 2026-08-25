@@ -17,7 +17,7 @@
 - **AWS Lambda**: Serverless functions for lightweight, sporadic workloads
 - **ECS Fargate**: Containerized services for long-running, stateful workloads
 
-This framework powers all 5 data servers in the SIPAP (Sports Intelligence Platform) architecture, handling sports data, odds intelligence, news context, weather data, and historical statistics.
+This framework powers all 5 data servers in the Valo (Sports Intelligence Platform) architecture, handling sports data, odds intelligence, news context, weather data, and historical statistics.
 
 ## Features
 
@@ -703,7 +703,7 @@ Contributions are welcome! Please:
 
 ## License
 
-Copyright © 2026 SIPAP Team
+Copyright © 2026 Valo Team
 
 ---
 
@@ -714,4 +714,4 @@ Copyright © 2026 SIPAP Team
 - Production-ready error handling
 - Comprehensive documentation
 
-**Part of the SIPAP platform** - Sports Intelligence and Outcome Probability Assessment Platform
+**Part of the Valo platform** - Sports Intelligence and Outcome Probability Assessment Platform

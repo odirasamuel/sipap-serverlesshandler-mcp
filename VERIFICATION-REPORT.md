@@ -1,4 +1,4 @@
-# SIPAP ServerlessHandler MCP - Verification Report
+# Valo ServerlessHandler MCP - Verification Report
 
 **Generated:** 2026-07-05
 **Package Version:** 0.1.0

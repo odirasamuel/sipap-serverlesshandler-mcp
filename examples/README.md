@@ -1,4 +1,4 @@
-# SIPAP ServerlessHandler MCP Examples
+# Valo ServerlessHandler MCP Examples
 
 This directory contains comprehensive working examples demonstrating the 5-zone session architecture and MCP integration patterns implemented in sipap-serverlesshandler-mcp following Sentinel patterns.
 
@@ -107,7 +107,7 @@ done
 Each example provides clear output demonstrating the pattern:
 
 ```
-SIPAP 5-Zone Session Lifecycle Examples
+Valo 5-Zone Session Lifecycle Examples
 ============================================================
 
 Example 1: Deterministic Session IDs
@@ -131,7 +131,7 @@ If you encounter issues or have questions about these examples:
 
 ## Architecture Patterns
 
-These examples demonstrate Sentinel patterns adapted for SIPAP:
+These examples demonstrate Sentinel patterns adapted for Valo:
 
 - **Pattern #16**: 5-Zone Session Architecture (Memory Safety + Security Isolation)
 - **Pattern #17**: Deterministic Session IDs (SHA256 of bearer token)
