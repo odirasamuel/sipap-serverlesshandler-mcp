@@ -6,7 +6,7 @@ Validates tool input arguments against JSON Schema Draft 7.
 
 from typing import Any
 
-import jsonschema
+import jsonschema  # type: ignore[import-untyped]
 from jsonschema import Draft7Validator
 
 
